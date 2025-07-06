@@ -1,30 +1,39 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
-import {  routeMatchers } from './lib/routes';
-import { NextResponse, NextRequest } from 'next/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import {  routeAccess } from './lib/routes';
+import { NextResponse } from 'next/server';
 
-// const matchers = Object.keys(routeAccess).map(
-//   (route) => ({
-//     matcher: createRouteMatcher([route]),
-//     allowedRoles: routeAccess[route],
-//   })
-// );
+const matchers = Object.keys(routeAccess).map(
+  (route) => ({
+    matcher: createRouteMatcher([route]),
+    allowedRoles: routeAccess[route],
+  })
+);
 
-const checkRoleandRedirect = (
-  req: NextRequest, 
-  role: string | undefined,
-  allowedRole: keyof typeof routeMatchers
-): NextResponse | undefined => {
+// const checkRoleandRedirect = (
+//   req: NextRequest, 
+//   role: string | undefined,
+//   allowedRole: keyof typeof routeMatchers
+// ): NextResponse | undefined => {
 
-  if(routeMatchers[allowedRole](req) && role !== allowedRole) {
-    const url = new URL(`/`, req.url);
-    console.log("Unauthorized access, redirecting to,",url)
-    return NextResponse.redirect(url);
-}
-}
+//   if(routeMatchers[allowedRole](req) && role !== allowedRole) {
+//     const url = new URL(`/`, req.url);
+//     console.log("Unauthorized access, redirecting to,",url)
+//     return NextResponse.redirect(url);
+// }
+// }
 export default clerkMiddleware( async (auth, req)=>{
   const {userId, sessionClaims} = await auth();
-  const role = (sessionClaims?.metadata as {role?: string})?.role;
+  const url = new URL(req.url);
+  const role = userId && sessionClaims?.metadata?.role ? sessionClaims.metadata.role
+  :userId ? "patient" : "sign-in";
   
+const matchchingRoute = matchers.find(({matcher}) => matcher(req));
+
+if (matchchingRoute && !matchchingRoute.allowedRoles.includes(role)) {
+
+  return NextResponse.redirect(new URL(`/${role}`, url.origin));
+}
+  return NextResponse.next();
 
   // const response = checkRoleandRedirect(req, role, 'admin') ||
   // checkRoleandRedirect(req, role, 'doctor');

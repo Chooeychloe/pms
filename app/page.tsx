@@ -1,11 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { UserButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
-import Image from "next/image";
 import Link from "next/link";
+import { getRole } from "@/utils/roles";
+import { redirect } from "next/navigation";
 
 export default async function Home() {
   const { userId } = await auth();
+  const role = await getRole();
+
+  if(userId && role) {
+
+    redirect(`/${role}`);
+  }
 
   return (
     <div className="flex flex-col items-center justify-center h-screen p-6">
@@ -23,14 +30,12 @@ export default async function Home() {
             This is a patient management system built with Next.js, Clerk, and
             Tailwind CSS.
             <br />
-            <span className="text-blue-500">
-              Click a button to get started!
-            </span>
+      
           </div>
           <div className="flex gap-4">
             {userId ? (
               <>
-                <Link href="/dashboard">
+                <Link href={`/${role}`}>
                   <Button>View Dashboard</Button>
                 </Link>
                 <UserButton />
